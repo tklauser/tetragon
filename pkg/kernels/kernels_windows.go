@@ -5,8 +5,8 @@ package kernels
 
 import (
 	"fmt"
-	"syscall"
-	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
 
 func GetKernelVersion(kernelVersion, procfs string) (int, string, error) {
@@ -17,25 +17,7 @@ func GetKernelVersion(kernelVersion, procfs string) (int, string, error) {
 		version = int(KernelStringToNumeric(kernelVersion))
 		verStr = kernelVersion
 	} else {
-
-		var mod = syscall.NewLazyDLL("ntdll.dll")
-		var proc = mod.NewProc("RtlGetVersion")
-
-		var osVersionInfo = struct {
-			dwOSVersionInfoSize uint32
-			dwMajorVersion      uint32
-			dwMinorVersion      uint32
-			dwBuildNumber       uint32
-			dwPlatformId        uint32
-			szCSDVersion        [128]uint16
-		}{
-			dwOSVersionInfoSize: 284,
-		}
-
-		ret, _, _ := proc.Call(uintptr(unsafe.Pointer(&osVersionInfo)))
-		if ret != 0 {
-			return 0, "", fmt.Errorf("error calling rtlgetversion %s, %s", kernelVersion, procfs)
-		}
+		osVersionInfo := windows.RtlGetVersion()
 
 		verStr = fmt.Sprintf("%d.%d.%d",
 			osVersionInfo.dwMajorVersion,
